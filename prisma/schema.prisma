@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  RECEPTIONIST
+  GUEST
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  SUITE
+  VIP
+}
+
+enum RoomStatus {
+  AVAILABLE
+  OCCUPIED
+  CLEANING
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHECKED_IN
+  CHECKED_OUT
+}
+
+enum PaymentMethod {
+  TELEBIRR
+  CHAPA
+  PAY_AT_HOTEL
+}
+
+enum MenuCategory {
+  BREAKFAST
+  TRADITIONAL_DISHES
+  FAST_FOOD
+  DRINKS
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  DELIVERED
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String?
+  email        String      @unique
+  passwordHash String?
+  role         UserRole    @default(GUEST)
+  createdAt    DateTime    @default(now())
+  bookings     Booking[]
+  orders       RestaurantOrder[]
+}
+
+model Room {
+  id          String      @id @default(cuid())
+  number      String      @unique
+  name        String
+  type        RoomType
+  pricePerNight Decimal    @db.Decimal(10, 2)
+  capacity    Int
+  status      RoomStatus  @default(AVAILABLE)
+  description String
+  imageUrl    String
+  features    String[]
+  createdAt   DateTime    @default(now())
+  bookings    Booking[]
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingReference String       @unique
+  guestName       String
+  guestEmail      String
+  guestPhone      String
+  guestCount      Int
+  checkIn         DateTime
+  checkOut        DateTime
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  roomId          String
+  room            Room          @relation(fields: [roomId], references: [id])
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+}
+
+model MenuItem {
+  id          String              @id @default(cuid())
+  name        String
+  category    MenuCategory
+  price       Decimal             @db.Decimal(10, 2)
+  description String?
+  imageUrl    String?
+  isAvailable Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  orderItems  RestaurantOrderItem[]
+}
+
+model RestaurantOrder {
+  id            String                @id @default(cuid())
+  orderNumber   String                @unique
+  guestName     String?
+  tableNumber   String?
+  roomNumber    String?
+  status        OrderStatus           @default(PENDING)
+  totalAmount   Decimal               @db.Decimal(10, 2)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  userId        String?
+  user          User?                 @relation(fields: [userId], references: [id])
+  items         RestaurantOrderItem[]
+}
+
+model RestaurantOrderItem {
+  id        String          @id @default(cuid())
+  quantity  Int
+  unitPrice Decimal         @db.Decimal(10, 2)
+  totalPrice Decimal        @db.Decimal(10, 2)
+  menuItemId String
+  menuItem   MenuItem        @relation(fields: [menuItemId], references: [id])
+  orderId   String
+  order     RestaurantOrder @relation(fields: [orderId], references: [id])
+}
